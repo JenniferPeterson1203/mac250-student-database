@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>School Database Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; background-color: #fafafa; }
+        h1 { margin-bottom: 25px; }
+        
+        .container {
+            display: flex;
+            gap: 25px;
+            align-items: flex-start;
+        }
+        .column {
+            flex: 1;
+        }
+
+        .card { 
+            background: #ffffff; 
+            padding: 20px; 
+            margin-bottom: 20px; 
+            border-radius: 8px; 
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        input { display: block; margin-bottom: 10px; padding: 8px; width: 230px; }
+        button { padding: 8px 15px; cursor: pointer; border: 1px solid #ccc; border-radius: 4px; }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 6px; }
+        #output { font-weight: bold; margin-top: 20px; color: #b30000; font-size: 1.1em; }
+        
+        .badge {
+            display: inline-block;
+            background: #e9ecef;
+            color: #495057;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body onload="initDashboard()">
+
+    <h1>School Database Control Panel</h1>
+
+    <div class="container">
+        <!-- ================= LEFT COLUMN: Students ================= -->
+        <div class="column">
+            <h2>Students Management</h2>
+
+            <!-- Student List -->
+            <div class="card">
+                <h3>Current Students</h3>
+                <ul id="studentList"></ul>
+            </div>
+
+            <!-- Insert Student -->
+            <div class="card">
+                <h3>Insert New Student</h3>
+                <input type="text" id="firstName" placeholder="First Name">
+                <input type="text" id="lastName" placeholder="Last Name">
+                <input type="email" id="email" placeholder="Email">
+                <button onclick="insertStudent()">Insert Student</button>
+            </div>
+
+            <!-- Update Student -->
+            <div class="card">
+                <h3>Update / Edit Student</h3>
+                <input type="number" id="updateId" placeholder="Existing Student ID">
+                <input type="text" id="updateFirstName" placeholder="New First Name (optional)">
+                <input type="text" id="updateLastName" placeholder="New Last Name (optional)">
+                <input type="email" id="updateEmail" placeholder="New Email (optional)">
+                <button onclick="updateStudent()" style="background-color: #cce5ff;">Update Student</button>
+            </div>
+
+            <!-- Delete Student -->
+            <div class="card">
+                <h3>Delete Student by ID</h3>
+                <input type="number" id="deleteId" placeholder="Student ID">
+                <button onclick="deleteStudent()" style="background-color: #ffcccc;">Delete Student</button>
+            </div>
+        </div>
+
+        <!-- ================= RIGHT COLUMN: Instructors ================= -->
+        <div class="column">
+            <h2>Faculty Management</h2>
+
+            <!-- Instructors List -->
+            <div class="card">
+                <h3>Current Instructors</h3>
+                <ul id="instructorList"></ul>
+            </div>
+
+            <!-- Insert Instructor -->
+            <div class="card">
+                <h3>Insert New Instructor</h3>
+                <input type="text" id="instFirstName" placeholder="First Name">
+                <input type="text" id="instLastName" placeholder="Last Name">
+                <input type="email" id="instEmail" placeholder="Email">
+                <input type="text" id="instDept" placeholder="Department (e.g. Computer Science)">
+                <button onclick="insertInstructor()">Insert Instructor</button>
+            </div>
+
+            <!-- Update Instructor -->
+            <div class="card">
+                <h3>Update / Edit Instructor</h3>
+                <input type="number" id="instUpdateId" placeholder="Existing Instructor ID">
+                <input type="text" id="instUpdateFirstName" placeholder="New First Name (optional)">
+                <input type="text" id="instUpdateLastName" placeholder="New Last Name (optional)">
+                <input type="email" id="instUpdateEmail" placeholder="New Email (optional)">
+                <input type="text" id="instUpdateDept" placeholder="New Department (optional)">
+                <button onclick="updateInstructor()" style="background-color: #cce5ff;">Update Instructor</button>
+            </div>
+
+            <!-- Delete Instructor -->
+            <div class="card">
+                <h3>Delete Instructor by ID</h3>
+                <input type="number" id="instDeleteId" placeholder="Instructor ID">
+                <button onclick="deleteInstructor()" style="background-color: #ffcccc;">Delete Instructor</button>
+            </div>
+        </div>
+    </div>
+
+    <p id="output"></p>
+
+    <script>
+        function initDashboard() {
+            loadStudents();
+            loadInstructors();
+        }
+
+        function isValidName(val) {
+            return /^[A-Za-z\s'-]+$/.test(val);
+        }
+
+        function isValidEmail(val) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+        }
+
+        // ==========================================
+        //             STUDENT ACTIONS
+        // ==========================================
+
+        async function loadStudents() {
+            try {
+                const response = await fetch('/api/students');
+                const data = await response.json();
+                const list = document.getElementById('studentList');
+                list.innerHTML = '';
+
+                if (data.students && data.students.length > 0) {
+                    data.students.forEach(student => {
+                        const li = document.createElement('li');
+                        li.innerText = `ID: ${student.StudentID} | ${student.FirstName} ${student.LastName} (${student.EMAIL})`;
+                        list.appendChild(li);
+                    });
+                } else {
+                    list.innerHTML = '<li>No students found.</li>';
+                }
+            } catch (err) {
+                document.getElementById('output').innerText = "Make sure you are loading via http://localhost:3000";
+            }
+        }
+
+        async function insertStudent() {
+            const firstName = document.getElementById('firstName').value.trim();
+            const lastName = document.getElementById('lastName').value.trim();
+            const email = document.getElementById('email').value.trim();
+
+            if (!firstName || !lastName || !email) {
+                document.getElementById('output').innerText = "All student fields are required.";
+                return;
+            }
+            if (!isValidName(firstName) || !isValidName(lastName)) {
+                document.getElementById('output').innerText = "Student names must contain letters only.";
+                return;
+            }
+            if (!isValidEmail(email)) {
+                document.getElementById('output').innerText = "Please enter a valid email address.";
+                return;
+            }
+
+            const response = await fetch('/api/students', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ firstName, lastName, email })
+            });
+
+            const result = await response.json();
+            document.getElementById('output').innerText = result.message || result.error;
+
+            if (response.ok) {
+                document.getElementById('firstName').value = '';
+                document.getElementById('lastName').value = '';
+                document.getElementById('email').value = '';
+            }
+            loadStudents();
+        }
+
+        async function updateStudent() {
+            const id = document.getElementById('updateId').value.trim();
+            const firstName = document.getElementById('updateFirstName').value.trim();
+            const lastName = document.getElementById('updateLastName').value.trim();
+            const email = document.getElementById('updateEmail').value.trim();
+
+            if (!id) {
+                document.getElementById('output').innerText = "Please provide the Student ID to update.";
+                return;
+            }
+            if (!firstName && !lastName && !email) {
+                document.getElementById('output').innerText = "Please fill in at least one student field to update.";
+                return;
+            }
+            if (firstName !== '' && !isValidName(firstName)) {
+                document.getElementById('output').innerText = "First name must contain letters only.";
+                return;
+            }
+            if (lastName !== '' && !isValidName(lastName)) {
+                document.getElementById('output').innerText = "Last name must contain letters only.";
+                return;
+            }
+            if (email !== '' && !isValidEmail(email)) {
+                document.getElementById('output').innerText = "Please enter a valid email address.";
+                return;
+            }
+
+            const response = await fetch(`/api/students/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ firstName, lastName, email })
+            });
+
+            const result = await response.json();
+            document.getElementById('output').innerText = result.message || result.error;
+
+            if (response.ok) {
+                document.getElementById('updateId').value = '';
+                document.getElementById('updateFirstName').value = '';
+                document.getElementById('updateLastName').value = '';
+                document.getElementById('updateEmail').value = '';
+            }
+            loadStudents();
+        }
+
+        async function deleteStudent() {
+            const id = document.getElementById('deleteId').value.trim();
+            if (!id) {
+                document.getElementById('output').innerText = "Please enter a Student ID to delete.";
+                return;
+            }
+
+            const response = await fetch(`/api/students/${id}`, { method: 'DELETE' });
+            const result = await response.json();
+            document.getElementById('output').innerText = result.message || result.error;
+
+            if (response.ok) document.getElementById('deleteId').value = '';
+            loadStudents();
+        }
+
+        // ==========================================
+        //            INSTRUCTOR ACTIONS
+        // ==========================================
+
+        async function loadInstructors() {
+            try {
+                const response = await fetch('/api/instructors');
+                const data = await response.json();
+                const list = document.getElementById('instructorList');
+                list.innerHTML = '';
+
+                if (data.instructors && data.instructors.length > 0) {
+                    data.instructors.forEach(inst => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `ID: ${inst.InstructorID} | <strong>${inst.FirstName} ${inst.LastName}</strong> (${inst.Email}) <span class="badge">${inst.Department}</span>`;
+                        list.appendChild(li);
+                    });
+                } else {
+                    list.innerHTML = '<li>No instructors found.</li>';
+                }
+            } catch (err) {
+                console.error("Could not fetch instructors:", err);
+            }
+        }
+
+        async function insertInstructor() {
+            const firstName = document.getElementById('instFirstName').value.trim();
+            const lastName = document.getElementById('instLastName').value.trim();
+            const email = document.getElementById('instEmail').value.trim();
+            const department = document.getElementById('instDept').value.trim();
+
+            if (!firstName || !lastName || !email || !department) {
+                document.getElementById('output').innerText = "All instructor fields (including department) are required.";
+                return;
+            }
+            if (!isValidName(firstName) || !isValidName(lastName)) {
+                document.getElementById('output').innerText = "Instructor names must contain letters only.";
+                return;
+            }
+            if (!isValidEmail(email)) {
+                document.getElementById('output').innerText = "Please enter a valid email address.";
+                return;
+            }
+
+            const response = await fetch('/api/instructors', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ firstName, lastName, email, department })
+            });
+
+            const result = await response.json();
+            document.getElementById('output').innerText = result.message || result.error;
+
+            if (response.ok) {
+                document.getElementById('instFirstName').value = '';
+                document.getElementById('instLastName').value = '';
+                document.getElementById('instEmail').value = '';
+                document.getElementById('instDept').value = '';
+            }
+            loadInstructors();
+        }
+
+        async function updateInstructor() {
+            const id = document.getElementById('instUpdateId').value.trim();
+            const firstName = document.getElementById('instUpdateFirstName').value.trim();
+            const lastName = document.getElementById('instUpdateLastName').value.trim();
+            const email = document.getElementById('instUpdateEmail').value.trim();
+            const department = document.getElementById('instUpdateDept').value.trim();
+
+            if (!id) {
+                document.getElementById('output').innerText = "Please provide the Instructor ID to update.";
+                return;
+            }
+            if (!firstName && !lastName && !email && !department) {
+                document.getElementById('output').innerText = "Please fill in at least one field to update.";
+                return;
+            }
+            if (firstName !== '' && !isValidName(firstName)) {
+                document.getElementById('output').innerText = "First name must contain letters only.";
+                return;
+            }
+            if (lastName !== '' && !isValidName(lastName)) {
+                document.getElementById('output').innerText = "Last name must contain letters only.";
+                return;
+            }
+            if (email !== '' && !isValidEmail(email)) {
+                document.getElementById('output').innerText = "Please enter a valid email address.";
+                return;
+            }
+
+            const response = await fetch(`/api/instructors/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ firstName, lastName, email, department })
+            });
+
+            const result = await response.json();
+            document.getElementById('output').innerText = result.message || result.error;
+
+            if (response.ok) {
+                document.getElementById('instUpdateId').value = '';
+                document.getElementById('instUpdateFirstName').value = '';
+                document.getElementById('instUpdateLastName').value = '';
+                document.getElementById('instUpdateEmail').value = '';
+                document.getElementById('instUpdateDept').value = '';
+            }
+            loadInstructors();
+        }
+
+        async function deleteInstructor() {
+            const id = document.getElementById('instDeleteId').value.trim();
+            if (!id) {
+                document.getElementById('output').innerText = "Please enter an Instructor ID to delete.";
+                return;
+            }
+
+            const response = await fetch(`/api/instructors/${id}`, { method: 'DELETE' });
+            const result = await response.json();
+            document.getElementById('output').innerText = result.message || result.error;
+
+            if (response.ok) document.getElementById('instDeleteId').value = '';
+            loadInstructors();
+        }
+    </script>
+</body>
+</html>

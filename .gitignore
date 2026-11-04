@@ -1,3 +1,7 @@
 *.db
 *.db-journal
 *.sqbpro
+node_modules
+*.db
+*.db-journal
+*.sqbpro
