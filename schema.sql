@@ -1,0 +1,27 @@
+CREATE TABLE sqlite_sequence(name,seq);
+CREATE TABLE Students (
+    StudentID INTEGER PRIMARY KEY AUTOINCREMENT,
+    FirstName VARCHAR(50) NOT NULL CHECK(FirstName NOT GLOB '*[0-9]*'),
+    LastName VARCHAR(50) NOT NULL CHECK(LastName NOT GLOB '*[0-9]*'),
+    EMAIL VARCHAR(155) UNIQUE NOT NULL
+);
+CREATE TABLE Courses(
+CourseID INTEGER PRIMARY KEY,
+CourseCode VARCHAR(10) UNIQUE NOT NULL,
+Credits INTEGER NOT NULL
+);
+CREATE TABLE Enrollments(
+EnrollmentID INTEGER PRIMARY KEY,
+StudentID INTEGER,
+CourseID INTEGER,
+RegistrationDate TEXT,
+FOREIGN KEY (StudentID) REFERENCES Students(StudentID)
+FOREIGN KEY(CourseID) REFERENCES Courses(CourseID)
+);
+CREATE TABLE Instructors (
+    InstructorID INTEGER PRIMARY KEY AUTOINCREMENT,
+    FirstName VARCHAR(50) NOT NULL CHECK(FirstName NOT GLOB '*[0-9]*'),
+    LastName VARCHAR(50) NOT NULL CHECK(LastName NOT GLOB '*[0-9]*'),
+    Email VARCHAR(155) UNIQUE NOT NULL,
+    Department VARCHAR(50) NOT NULL
+);
