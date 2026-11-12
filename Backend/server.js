@@ -1,16 +1,19 @@
+// Import required Node.js modules
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
+// Initialize the Express application
 const app = express();
 const PORT = 3000;
 
-// Middleware to parse JSON data from the frontend
+// Middleware to automatically parse incoming JSON data from frontend requests
 app.use(express.json());
-// Serve static files from the Frontend folder
+
+// Serve static frontend files (HTML, CSS, client-side JS) from the public folder
 app.use(express.static(path.join(__dirname, '../Frontend/public')));
 
-// Connect to SQLite database
+// Connect to the SQLite database file (it will create it automatically if it doesn't exist)
 const dbPath = path.resolve(__dirname, 'student_database.db');
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
@@ -34,34 +37,43 @@ const db = new sqlite3.Database(dbPath, (err) => {
             Email VARCHAR(155) UNIQUE NOT NULL,
             Department VARCHAR(50) NOT NULL
         )`);
+
+        // Automatically create the Courses table if it doesn't exist yet
+        db.run(`CREATE TABLE IF NOT EXISTS Courses (
+            CourseID INTEGER PRIMARY KEY AUTOINCREMENT,
+            CourseCode VARCHAR(10) UNIQUE NOT NULL,
+            Credits INTEGER NOT NULL
+        )`);
+
+        // Automatically create the Enrollments junction table if it doesn't exist yet
+        db.run(`CREATE TABLE IF NOT EXISTS Enrollments (
+            EnrollmentID INTEGER PRIMARY KEY AUTOINCREMENT,
+            StudentID INTEGER,
+            CourseID INTEGER,
+            RegistrationDate TEXT,
+            FOREIGN KEY (StudentID) REFERENCES Students(StudentID),
+            FOREIGN KEY (CourseID) REFERENCES Courses(CourseID)
+        )`);
     }
 });
 
-// Helper validation functions
+// Regular expressions and helper function for input validation
 const nameRegex = /^[A-Za-z\s'-]+$/;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function validatePersonInput(firstName, lastName, email) {
-    if (!firstName || !lastName || !email) {
-        return "First Name, Last Name, and Email are required.";
-    }
-    if (!nameRegex.test(firstName.trim())) {
-        return "First Name must contain letters only.";
-    }
-    if (!nameRegex.test(lastName.trim())) {
-        return "Last Name must contain letters only.";
-    }
-    if (!emailRegex.test(email.trim())) {
-        return "Please provide a valid email address.";
-    }
+    if (!firstName || !lastName || !email) return "First Name, Last Name, and Email are required.";
+    if (!nameRegex.test(firstName.trim())) return "First Name must contain letters only.";
+    if (!nameRegex.test(lastName.trim())) return "Last Name must contain letters only.";
+    if (!emailRegex.test(email.trim())) return "Please provide a valid email address.";
     return null;
 }
 
 // ==========================================
-//             STUDENTS ROUTES
+//              STUDENTS ROUTES
 // ==========================================
 
-// 1. GET Students
+// 1. GET ALL Students (Read / Show All)
 app.get('/api/students', (req, res) => {
     db.all(`SELECT * FROM Students`, [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -69,7 +81,7 @@ app.get('/api/students', (req, res) => {
     });
 });
 
-// 2. INSERT Student
+// 2. INSERT a new Student
 app.post('/api/students', (req, res) => {
     const { firstName, lastName, email } = req.body;
     const error = validatePersonInput(firstName, lastName, email);
@@ -82,13 +94,14 @@ app.post('/api/students', (req, res) => {
     });
 });
 
-// 3. UPDATE Student (Partial update supported)
+// 3. UPDATE an existing Student
 app.put('/api/students/:id', (req, res) => {
     const studentId = req.params.id;
     const { firstName, lastName, email } = req.body;
     const fields = [];
     const values = [];
 
+    // SQL Queries
     if (firstName && firstName.trim() !== '') {
         if (!nameRegex.test(firstName.trim())) return res.status(400).json({ error: "First Name must contain letters only." });
         fields.push("FirstName = ?");
@@ -117,7 +130,7 @@ app.put('/api/students/:id', (req, res) => {
     });
 });
 
-// 4. DELETE Student
+// 4. DELETE a Student by ID
 app.delete('/api/students/:id', (req, res) => {
     const studentId = req.params.id;
     db.run(`DELETE FROM Students WHERE StudentID = ?`, studentId, function(err) {
@@ -131,7 +144,7 @@ app.delete('/api/students/:id', (req, res) => {
 //            INSTRUCTORS ROUTES
 // ==========================================
 
-// 1. GET Instructors
+// 1. GET ALL Instructors
 app.get('/api/instructors', (req, res) => {
     db.all(`SELECT * FROM Instructors`, [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -139,7 +152,7 @@ app.get('/api/instructors', (req, res) => {
     });
 });
 
-// 2. INSERT Instructor
+// 2. INSERT a new Instructor
 app.post('/api/instructors', (req, res) => {
     const { firstName, lastName, email, department } = req.body;
     const error = validatePersonInput(firstName, lastName, email);
@@ -156,7 +169,7 @@ app.post('/api/instructors', (req, res) => {
     });
 });
 
-// 3. UPDATE Instructor (Partial update supported)
+// 3. UPDATE an existing Instructor
 app.put('/api/instructors/:id', (req, res) => {
     const instructorId = req.params.id;
     const { firstName, lastName, email, department } = req.body;
@@ -195,7 +208,7 @@ app.put('/api/instructors/:id', (req, res) => {
     });
 });
 
-// 4. DELETE Instructor
+// 4. DELETE an Instructor by ID
 app.delete('/api/instructors/:id', (req, res) => {
     const instructorId = req.params.id;
     db.run(`DELETE FROM Instructors WHERE InstructorID = ?`, instructorId, function(err) {
@@ -205,6 +218,73 @@ app.delete('/api/instructors/:id', (req, res) => {
     });
 });
 
+// ==========================================
+//              COURSES ROUTES
+// ==========================================
+
+// 1. GET ALL Courses
+app.get('/api/courses', (req, res) => {
+    db.all(`SELECT * FROM Courses`, [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ courses: rows });
+    });
+});
+
+// 2. INSERT a new Course
+app.post('/api/courses', (req, res) => {
+    const { courseCode, credits } = req.body;
+
+    if (!courseCode || !credits) {
+        return res.status(400).json({ error: "Course Code and Credits are required." });
+    }
+
+    const query = `INSERT INTO Courses (CourseCode, Credits) VALUES (?, ?)`;
+    db.run(query, [courseCode.trim().toUpperCase(), parseInt(credits)], function(err) {
+        if (err) return res.status(400).json({ error: err.message });
+        res.json({ message: 'Course added successfully!', courseId: this.lastID });
+    });
+});
+
+// ==========================================
+//             ENROLLMENTS ROUTES
+// ==========================================
+
+// 1. GET ALL Enrollments (Joins Students and Courses tables to display the names)
+app.get('/api/enrollments', (req, res) => {
+    const query = `
+        SELECT Enrollments.EnrollmentID, 
+               Students.StudentID, Students.FirstName, Students.LastName, 
+               Courses.CourseID, Courses.CourseCode, 
+               Enrollments.RegistrationDate
+        FROM Enrollments
+        JOIN Students ON Enrollments.StudentID = Students.StudentID
+        JOIN Courses ON Enrollments.CourseID = Courses.CourseID
+    `;
+    db.all(query, [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ enrollments: rows });
+    });
+});
+
+// 2. INSERT a new Enrollment (Enroll a Student in a Course)
+app.post('/api/enrollments', (req, res) => {
+    const { studentId, courseId } = req.body;
+
+    if (!studentId || !courseId) {
+        return res.status(400).json({ error: "Student ID and Course ID are required." });
+    }
+
+    // Automatically get today's date in YYYY-MM-DD format
+    const registrationDate = new Date().toISOString().split('T')[0];
+
+    const query = `INSERT INTO Enrollments (StudentID, CourseID, RegistrationDate) VALUES (?, ?, ?)`;
+    db.run(query, [studentId, courseId, registrationDate], function(err) {
+        if (err) return res.status(400).json({ error: err.message });
+        res.json({ message: 'Student enrolled successfully!', enrollmentId: this.lastID });
+    });
+});
+
+// Start the Express server
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
 });

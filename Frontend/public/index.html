@@ -4,31 +4,34 @@
     <meta charset="UTF-8">
     <title>School Database Dashboard</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 30px; background-color: #fafafa; }
+        body { font-family: Arial, sans-serif; margin: 30px; background-color: #fafafa; color: #333; }
         h1 { margin-bottom: 25px; }
         
         .container {
             display: flex;
-            gap: 25px;
+            gap: 20px;
+            flex-wrap: wrap;
             align-items: flex-start;
         }
         .column {
             flex: 1;
+            min-width: 280px;
         }
 
         .card { 
             background: #ffffff; 
-            padding: 20px; 
-            margin-bottom: 20px; 
+            padding: 18px; 
+            margin-bottom: 15px; 
             border-radius: 8px; 
             border: 1px solid #e0e0e0;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
         
-        input { display: block; margin-bottom: 10px; padding: 8px; width: 230px; }
-        button { padding: 8px 15px; cursor: pointer; border: 1px solid #ccc; border-radius: 4px; }
+        input { display: block; margin-bottom: 10px; padding: 8px; width: 100%; box-sizing: border-box; }
+        button { padding: 8px 15px; cursor: pointer; border: 1px solid #ccc; border-radius: 4px; background-color: #f0f0f0; }
+        button:hover { background-color: #e0e0e0; }
         ul { padding-left: 20px; }
-        li { margin-bottom: 6px; }
+        li { margin-bottom: 6px; font-size: 0.95em; }
         #output { font-weight: bold; margin-top: 20px; color: #b30000; font-size: 1.1em; }
         
         .badge {
@@ -47,11 +50,12 @@
     <h1>School Database Control Panel</h1>
 
     <div class="container">
-        <!-- ================= LEFT COLUMN: Students ================= -->
+        
+        <!-- ================= COLUMN 1: STUDENTS ================= -->
         <div class="column">
             <h2>Students Management</h2>
 
-            <!-- Student List -->
+            <!-- Show All Students -->
             <div class="card">
                 <h3>Current Students</h3>
                 <ul id="studentList"></ul>
@@ -68,7 +72,7 @@
 
             <!-- Update Student -->
             <div class="card">
-                <h3>Update / Edit Student</h3>
+                <h3>Update Student</h3>
                 <input type="number" id="updateId" placeholder="Existing Student ID">
                 <input type="text" id="updateFirstName" placeholder="New First Name (optional)">
                 <input type="text" id="updateLastName" placeholder="New Last Name (optional)">
@@ -78,17 +82,17 @@
 
             <!-- Delete Student -->
             <div class="card">
-                <h3>Delete Student by ID</h3>
+                <h3>Delete Student</h3>
                 <input type="number" id="deleteId" placeholder="Student ID">
                 <button onclick="deleteStudent()" style="background-color: #ffcccc;">Delete Student</button>
             </div>
         </div>
 
-        <!-- ================= RIGHT COLUMN: Instructors ================= -->
+        <!-- ================= COLUMN 2: INSTRUCTORS ================= -->
         <div class="column">
             <h2>Faculty Management</h2>
 
-            <!-- Instructors List -->
+            <!-- Show All Instructors -->
             <div class="card">
                 <h3>Current Instructors</h3>
                 <ul id="instructorList"></ul>
@@ -100,38 +104,66 @@
                 <input type="text" id="instFirstName" placeholder="First Name">
                 <input type="text" id="instLastName" placeholder="Last Name">
                 <input type="email" id="instEmail" placeholder="Email">
-                <input type="text" id="instDept" placeholder="Department (e.g. Computer Science)">
+                <input type="text" id="instDept" placeholder="Department">
                 <button onclick="insertInstructor()">Insert Instructor</button>
-            </div>
-
-            <!-- Update Instructor -->
-            <div class="card">
-                <h3>Update / Edit Instructor</h3>
-                <input type="number" id="instUpdateId" placeholder="Existing Instructor ID">
-                <input type="text" id="instUpdateFirstName" placeholder="New First Name (optional)">
-                <input type="text" id="instUpdateLastName" placeholder="New Last Name (optional)">
-                <input type="email" id="instUpdateEmail" placeholder="New Email (optional)">
-                <input type="text" id="instUpdateDept" placeholder="New Department (optional)">
-                <button onclick="updateInstructor()" style="background-color: #cce5ff;">Update Instructor</button>
             </div>
 
             <!-- Delete Instructor -->
             <div class="card">
-                <h3>Delete Instructor by ID</h3>
+                <h3>Delete Instructor</h3>
                 <input type="number" id="instDeleteId" placeholder="Instructor ID">
                 <button onclick="deleteInstructor()" style="background-color: #ffcccc;">Delete Instructor</button>
             </div>
         </div>
+
+        <!-- ================= COLUMN 3: COURSES & ENROLLMENTS ================= -->
+        <div class="column">
+            <h2>Academics</h2>
+
+            <!-- Show All Courses -->
+            <div class="card">
+                <h3>Available Courses</h3>
+                <ul id="courseList"></ul>
+            </div>
+
+            <!-- Insert Course -->
+            <div class="card">
+                <h3>Insert New Course</h3>
+                <input type="text" id="courseCode" placeholder="Course Code (e.g. MAC101)">
+                <input type="number" id="credits" placeholder="Credits">
+                <button onclick="insertCourse()">Insert Course</button>
+            </div>
+
+            <!-- Show All Enrollments -->
+            <div class="card">
+                <h3>Current Enrollments</h3>
+                <ul id="enrollmentList"></ul>
+            </div>
+
+            <!-- Create Enrollment -->
+            <div class="card">
+                <h3>Enroll Student in Course</h3>
+                <input type="number" id="enrollStudentId" placeholder="Student ID">
+                <input type="number" id="enrollCourseId" placeholder="Course ID">
+                <button onclick="enrollStudent()">Enroll Student</button>
+            </div>
+        </div>
+
     </div>
 
+    <!-- Status feedback message box -->
     <p id="output"></p>
 
     <script>
+        // Automatically runs when the page finishes loading in the browser
         function initDashboard() {
             loadStudents();
             loadInstructors();
+            loadCourses();
+            loadEnrollments();
         }
 
+        // Helper check functions for frontend input validation
         function isValidName(val) {
             return /^[A-Za-z\s'-]+$/.test(val);
         }
@@ -141,7 +173,7 @@
         }
 
         // ==========================================
-        //             STUDENT ACTIONS
+        //            STUDENT ACTIONS
         // ==========================================
 
         async function loadStudents() {
@@ -161,7 +193,7 @@
                     list.innerHTML = '<li>No students found.</li>';
                 }
             } catch (err) {
-                document.getElementById('output').innerText = "Make sure you are loading via http://localhost:3000";
+                console.error("Error loading students:", err);
             }
         }
 
@@ -169,19 +201,6 @@
             const firstName = document.getElementById('firstName').value.trim();
             const lastName = document.getElementById('lastName').value.trim();
             const email = document.getElementById('email').value.trim();
-
-            if (!firstName || !lastName || !email) {
-                document.getElementById('output').innerText = "All student fields are required.";
-                return;
-            }
-            if (!isValidName(firstName) || !isValidName(lastName)) {
-                document.getElementById('output').innerText = "Student names must contain letters only.";
-                return;
-            }
-            if (!isValidEmail(email)) {
-                document.getElementById('output').innerText = "Please enter a valid email address.";
-                return;
-            }
 
             const response = await fetch('/api/students', {
                 method: 'POST',
@@ -196,8 +215,8 @@
                 document.getElementById('firstName').value = '';
                 document.getElementById('lastName').value = '';
                 document.getElementById('email').value = '';
+                loadStudents();
             }
-            loadStudents();
         }
 
         async function updateStudent() {
@@ -208,22 +227,6 @@
 
             if (!id) {
                 document.getElementById('output').innerText = "Please provide the Student ID to update.";
-                return;
-            }
-            if (!firstName && !lastName && !email) {
-                document.getElementById('output').innerText = "Please fill in at least one student field to update.";
-                return;
-            }
-            if (firstName !== '' && !isValidName(firstName)) {
-                document.getElementById('output').innerText = "First name must contain letters only.";
-                return;
-            }
-            if (lastName !== '' && !isValidName(lastName)) {
-                document.getElementById('output').innerText = "Last name must contain letters only.";
-                return;
-            }
-            if (email !== '' && !isValidEmail(email)) {
-                document.getElementById('output').innerText = "Please enter a valid email address.";
                 return;
             }
 
@@ -241,8 +244,8 @@
                 document.getElementById('updateFirstName').value = '';
                 document.getElementById('updateLastName').value = '';
                 document.getElementById('updateEmail').value = '';
+                loadStudents();
             }
-            loadStudents();
         }
 
         async function deleteStudent() {
@@ -261,7 +264,7 @@
         }
 
         // ==========================================
-        //            INSTRUCTOR ACTIONS
+        //           INSTRUCTOR ACTIONS
         // ==========================================
 
         async function loadInstructors() {
@@ -281,7 +284,7 @@
                     list.innerHTML = '<li>No instructors found.</li>';
                 }
             } catch (err) {
-                console.error("Could not fetch instructors:", err);
+                console.error("Error loading instructors:", err);
             }
         }
 
@@ -290,19 +293,6 @@
             const lastName = document.getElementById('instLastName').value.trim();
             const email = document.getElementById('instEmail').value.trim();
             const department = document.getElementById('instDept').value.trim();
-
-            if (!firstName || !lastName || !email || !department) {
-                document.getElementById('output').innerText = "All instructor fields (including department) are required.";
-                return;
-            }
-            if (!isValidName(firstName) || !isValidName(lastName)) {
-                document.getElementById('output').innerText = "Instructor names must contain letters only.";
-                return;
-            }
-            if (!isValidEmail(email)) {
-                document.getElementById('output').innerText = "Please enter a valid email address.";
-                return;
-            }
 
             const response = await fetch('/api/instructors', {
                 method: 'POST',
@@ -318,55 +308,8 @@
                 document.getElementById('instLastName').value = '';
                 document.getElementById('instEmail').value = '';
                 document.getElementById('instDept').value = '';
+                loadInstructors();
             }
-            loadInstructors();
-        }
-
-        async function updateInstructor() {
-            const id = document.getElementById('instUpdateId').value.trim();
-            const firstName = document.getElementById('instUpdateFirstName').value.trim();
-            const lastName = document.getElementById('instUpdateLastName').value.trim();
-            const email = document.getElementById('instUpdateEmail').value.trim();
-            const department = document.getElementById('instUpdateDept').value.trim();
-
-            if (!id) {
-                document.getElementById('output').innerText = "Please provide the Instructor ID to update.";
-                return;
-            }
-            if (!firstName && !lastName && !email && !department) {
-                document.getElementById('output').innerText = "Please fill in at least one field to update.";
-                return;
-            }
-            if (firstName !== '' && !isValidName(firstName)) {
-                document.getElementById('output').innerText = "First name must contain letters only.";
-                return;
-            }
-            if (lastName !== '' && !isValidName(lastName)) {
-                document.getElementById('output').innerText = "Last name must contain letters only.";
-                return;
-            }
-            if (email !== '' && !isValidEmail(email)) {
-                document.getElementById('output').innerText = "Please enter a valid email address.";
-                return;
-            }
-
-            const response = await fetch(`/api/instructors/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ firstName, lastName, email, department })
-            });
-
-            const result = await response.json();
-            document.getElementById('output').innerText = result.message || result.error;
-
-            if (response.ok) {
-                document.getElementById('instUpdateId').value = '';
-                document.getElementById('instUpdateFirstName').value = '';
-                document.getElementById('instUpdateLastName').value = '';
-                document.getElementById('instUpdateEmail').value = '';
-                document.getElementById('instUpdateDept').value = '';
-            }
-            loadInstructors();
         }
 
         async function deleteInstructor() {
@@ -382,6 +325,96 @@
 
             if (response.ok) document.getElementById('instDeleteId').value = '';
             loadInstructors();
+        }
+
+        // ==========================================
+        //             COURSE ACTIONS
+        // ==========================================
+
+        async function loadCourses() {
+            try {
+                const response = await fetch('/api/courses');
+                const data = await response.json();
+                const list = document.getElementById('courseList');
+                list.innerHTML = '';
+
+                if (data.courses && data.courses.length > 0) {
+                    data.courses.forEach(course => {
+                        const li = document.createElement('li');
+                        li.innerText = `ID: ${course.CourseID} | ${course.CourseCode} (${course.Credits} Credits)`;
+                        list.appendChild(li);
+                    });
+                } else {
+                    list.innerHTML = '<li>No courses found.</li>';
+                }
+            } catch (err) {
+                console.error("Error loading courses:", err);
+            }
+        }
+
+        async function insertCourse() {
+            const courseCode = document.getElementById('courseCode').value.trim();
+            const credits = document.getElementById('credits').value.trim();
+
+            const response = await fetch('/api/courses', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ courseCode, credits })
+            });
+
+            const result = await response.json();
+            document.getElementById('output').innerText = result.message || result.error;
+
+            if (response.ok) {
+                document.getElementById('courseCode').value = '';
+                document.getElementById('credits').value = '';
+                loadCourses();
+            }
+        }
+
+        // ==========================================
+        //           ENROLLMENT ACTIONS
+        // ==========================================
+
+        async function loadEnrollments() {
+            try {
+                const response = await fetch('/api/enrollments');
+                const data = await response.json();
+                const list = document.getElementById('enrollmentList');
+                list.innerHTML = '';
+
+                if (data.enrollments && data.enrollments.length > 0) {
+                    data.enrollments.forEach(en => {
+                        const li = document.createElement('li');
+                        li.innerText = `${en.FirstName} ${en.LastName} is enrolled in ${en.CourseCode} (Date: ${en.RegistrationDate})`;
+                        list.appendChild(li);
+                    });
+                } else {
+                    list.innerHTML = '<li>No active enrollments found.</li>';
+                }
+            } catch (err) {
+                console.error("Error loading enrollments:", err);
+            }
+        }
+
+        async function enrollStudent() {
+            const studentId = document.getElementById('enrollStudentId').value.trim();
+            const courseId = document.getElementById('enrollCourseId').value.trim();
+
+            const response = await fetch('/api/enrollments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ studentId, courseId })
+            });
+
+            const result = await response.json();
+            document.getElementById('output').innerText = result.message || result.error;
+
+            if (response.ok) {
+                document.getElementById('enrollStudentId').value = '';
+                document.getElementById('enrollCourseId').value = '';
+                loadEnrollments();
+            }
         }
     </script>
 </body>
